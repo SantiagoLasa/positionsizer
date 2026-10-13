@@ -199,3 +199,19 @@ paso explícito (se puede automatizar con un script opcional más adelante).
   se valida al compilar en NT8.
 - Posición/anti-solapamiento de las etiquetas y la caja resumen — se ajusta con la checklist visual.
 - Disponibilidad de `dotnet`/SDK para el runner de tests — se verifica al inicio del build.
+
+## 9. Cambios durante la implementación (v2)
+El diseño original usaba `HorizontalLine` nativas de NT para las líneas arrastrables. En la práctica
+eso trajo dos problemas: (a) hacerlas "solo a la derecha" no es posible (NT las dibuja de ancho
+completo) y (b) al cambiar un parámetro el indicador se recrea y los objetos quedaban huérfanos
+(desaparecían). Se reemplazó por:
+- **Sin objetos de dibujo**: las líneas (entrada/stop/TP) se dibujan en `OnRender` como **tramos
+  cortos a la derecha** (largo configurable con `LineLengthPct`).
+- **Arrastre por eventos de mouse** (`PreviewMouseLeftButtonDown/Up` + `MouseMove`), con conversión
+  `ChartingExtensions.ConvertToVerticalPixels` → `ChartScale.GetValueByY`. Repinta con
+  `ChartControl.InvalidateVisual()` solo cuando el precio cambia de tick (arrastre fluido).
+- **Persistencia** de los precios de entrada/stop en propiedades serializadas (`EntryPriceState`,
+  `StopPriceState`) → cambiar el riesgo u otro parámetro ya no mueve ni borra las líneas.
+- Parámetros nuevos de estética: `ShowPriceTags`, `ShowSummaryBox` (off por defecto), `LineLengthPct`.
+- Etiquetas (0R/1R/2R/3R/-1R + $) dibujadas **por encima** de cada línea para legibilidad; tags de
+  precio de colores pegados al eje derecho.

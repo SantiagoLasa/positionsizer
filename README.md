@@ -47,18 +47,31 @@ dotnet test
 3. Agregar el indicador **PositionSizerRR** a un gráfico de futuros.
 4. Verificar con [docs/nt8-checklist.md](docs/nt8-checklist.md).
 
+## Uso
+Agarrás la línea de **Entrada** o **Stop** por su tramo (a la derecha del gráfico) y la arrastrás;
+todo recalcula en vivo. La posición de las líneas se **persiste**, así que cambiar el riesgo (u otro
+parámetro) no las mueve.
+
 ## Parámetros (config del indicador)
 | Parámetro | Default | Qué hace |
 |---|---|---|
 | Riesgo ($) | 500 | Monto fijo a arriesgar en dólares. |
-| Distancia inicial del stop (ticks) | 40 | Dónde arranca la línea de stop al cargar. |
+| Distancia inicial del stop (ticks) | 40 | Dónde arranca la línea de stop al cargar por primera vez. |
 | Tamaño texto | 13 | Tamaño de las etiquetas. |
+| Mostrar tags de precio | sí | Cajitas de precio pegadas al eje derecho. |
+| Mostrar caja resumen | no | Caja con contratos/riesgo/dirección arriba a la izquierda. |
+| Largo líneas (% ancho) | 35 | Qué parte del ancho (desde la derecha) ocupan las líneas. |
 | Color entrada / stop / objetivos / texto | dorado / rojo / verde / blanco | Colores. |
 
 ## Notas técnicas
 - La lógica de cálculo está aislada en `PositionSizerMath` (C# 7.3, sin referencias a NT) para
   poder testearla con `dotnet test` fuera de NinjaTrader.
-- El indicador usa `OnRender` (SharpDX) para dibujar en vivo mientras arrastrás las líneas, y
-  lee los precios de las líneas horizontales nativas y arrastrables de NT8.
+- El indicador **no usa objetos de dibujo de NT**: dibuja las líneas cortas en `OnRender` (SharpDX)
+  y maneja el arrastre con **eventos de mouse** (`PreviewMouseLeftButtonDown/Up` + `MouseMove`),
+  convirtiendo la posición del cursor a precio con `ChartingExtensions.ConvertToVerticalPixels` +
+  `ChartScale.GetValueByY`. Repinta con `ChartControl.InvalidateVisual()` solo cuando el precio
+  cambia de tick, para que el arrastre sea fluido.
+- Las posiciones de entrada/stop se guardan en propiedades serializadas, así sobreviven a recargas
+  (p. ej. al cambiar el riesgo $).
 - Verificado: la lógica pasa 24/24 tests y el indicador compila contra las DLLs reales de NT8
   (net48 / C# 7.3) sin errores.
